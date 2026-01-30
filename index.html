@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WTF IS MY OS - Windows 7 Edition</title>
+    <title>WTF IS MY OS</title>
     <link rel="stylesheet" href="https://unpkg.com/7.css">
     <style>
         body {
-            /* Wallpaper solicitado pelo usuário */
             background: url('https://wallpaperaccess.com/full/1863471.jpg') no-repeat center center fixed;
             background-size: cover;
             display: flex;
@@ -21,7 +20,6 @@
             overflow: hidden;
         }
 
-        /* Camada de vidro fosco para ajudar na legibilidade dependendo do brilho do wallpaper */
         body::before {
             content: "";
             position: fixed;
@@ -119,7 +117,6 @@
             color: #111;
         }
 
-        /* Estilo da barra de scroll */
         .scrollable-content::-webkit-scrollbar { width: 14px; }
         .scrollable-content::-webkit-scrollbar-track { background: #f1f1f1; border-left: 1px solid #ccc; }
         .scrollable-content::-webkit-scrollbar-thumb { background: #cdcdcd; border: 3px solid #f1f1f1; border-radius: 8px; }
@@ -134,13 +131,20 @@
             min-width: 150px;
             font-weight: bold;
         }
+
+        .notice {
+            font-size: 10px;
+            color: #888;
+            margin-top: 10px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
 
     <div class="window">
         <div class="title-bar">
-            <div class="title-bar-text">System Properties - What's My OS</div>
+            <div class="title-bar-text">System Properties - WTF IS MY OS</div>
             <div class="title-bar-controls">
                 <button aria-label="Minimize"></button>
                 <button aria-label="Maximize"></button>
@@ -157,11 +161,15 @@
             </div>
 
             <div class="expand-btn-container">
-                <button id="expand-toggle" onclick="toggleDetails()">Show All Details</button>
+                <button id="expand-toggle" onclick="toggleDetails()">Show Details</button>
             </div>
 
             <div class="scrollable-content" id="main-content">
-                <!-- Conteúdo gerado via JS -->
+                <!-- Content generated via JS -->
+            </div>
+
+            <div class="notice">
+                * Note: For security and privacy reasons, browsers limit access to exact hardware data (Fingerprinting Protection). The values below are the best estimates permitted by your browser API.
             </div>
 
             <section class="field-row" style="justify-content: flex-end; margin-top: 15px;">
@@ -189,7 +197,7 @@
                 btn.innerText = "Hide Details";
             } else {
                 content.classList.remove('expanded');
-                btn.innerText = "Show All Details";
+                btn.innerText = "Show Details";
             }
         }
 
@@ -197,58 +205,64 @@
             try {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                if (!gl) return "N/A";
+                if (!gl) return "Disabled/Unavailable";
                 const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Generic GPU";
-            } catch (e) { return "Access Denied"; }
+                return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Generic WebGL Renderer";
+            } catch (e) { return "Access Denied by Browser"; }
         }
 
         function getDetailedOS() {
             const ua = navigator.userAgent;
-            if (ua.indexOf("Windows NT 10.0") !== -1) return "Windows 10/11";
+            if (ua.indexOf("Windows NT 10.0") !== -1) return "Windows 10 or 11";
             if (ua.indexOf("Windows NT 6.1") !== -1) return "Windows 7";
             if (ua.indexOf("Windows NT 6.3") !== -1) return "Windows 8.1";
-            if (ua.indexOf("Windows NT 6.0") !== -1) return "Windows Vista";
-            if (ua.indexOf("Windows NT 5.1") !== -1) return "Windows XP";
-            if (ua.indexOf("Macintosh") !== -1) return "macOS";
-            if (ua.indexOf("Linux") !== -1) return "Linux";
-            if (ua.indexOf("Android") !== -1) return "Android";
-            if (ua.indexOf("iPhone") !== -1) return "iOS";
-            return "Unknown OS";
+            if (ua.indexOf("Macintosh") !== -1) return "macOS (Apple)";
+            if (ua.indexOf("Linux") !== -1) return "Linux / Base Distribution";
+            if (ua.indexOf("Android") !== -1) return "Android OS";
+            if (ua.indexOf("iPhone") !== -1) return "iOS (iPhone)";
+            return "Unknown Operating System";
         }
 
         async function init() {
             const container = document.getElementById('main-content');
             
+            let highResData = {};
+            if (navigator.userAgentData) {
+                try {
+                    highResData = await navigator.userAgentData.getHighEntropyValues(["architecture", "model", "platformVersion", "fullVersionList"]);
+                } catch(e) {}
+            }
+
             const sections = {
                 "System & Browser": {
                     "OS Name": getDetailedOS(),
-                    "Architecture": navigator.platform,
-                    "Language": navigator.language,
+                    "Reported Architecture": navigator.platform,
+                    "Kernel Version": highResData.platformVersion || "Unavailable",
+                    "Language": navigator.language.toUpperCase(),
                     "User Agent": navigator.userAgent
                 },
-                "Hardware Details": {
-                    "GPU": getGPU(),
-                    "CPU Cores": navigator.hardwareConcurrency || "N/A",
-                    "RAM Approx": navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Unknown",
-                    "Max Touch Points": navigator.maxTouchPoints
+                "Hardware (Browser Estimates)": {
+                    "Graphics Card (GPU)": getGPU(),
+                    "Logical Cores (CPU)": navigator.hardwareConcurrency || "Limited/Unknown",
+                    "RAM Memory (Approx)": navigator.deviceMemory ? `At least ${navigator.deviceMemory} GB` : "Not reported by Browser",
+                    "Max Touch Points": navigator.maxTouchPoints || "0 (No Touch)"
                 },
-                "Display Info": {
-                    "Resolution": `${window.screen.width} x ${window.screen.height}`,
-                    "Available": `${window.screen.availWidth} x ${window.screen.availHeight}`,
+                "Display & Graphics": {
+                    "Total Resolution": `${window.screen.width} x ${window.screen.height}`,
+                    "Available Area": `${window.screen.availWidth} x ${window.screen.availHeight}`,
                     "Color Depth": `${window.screen.colorDepth}-bit`,
-                    "Pixel Ratio": window.devicePixelRatio
+                    "Pixel Density (DPR)": window.devicePixelRatio
                 },
-                "Network & Capabilities": {
-                    "Online": navigator.onLine ? "Yes" : "No",
-                    "Cookies": navigator.cookieEnabled ? "Yes" : "No",
-                    "PDF Support": navigator.pdfViewerEnabled ? "Yes" : "No",
+                "Network & Security": {
+                    "Internet Connection": navigator.onLine ? "Online" : "Offline",
+                    "Cookies Enabled": navigator.cookieEnabled ? "Yes" : "No",
+                    "Native PDF Support": navigator.pdfViewerEnabled ? "Yes" : "No",
                     "Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone
                 }
             };
 
             document.getElementById('os-display').innerText = getDetailedOS();
-            document.getElementById('browser-display').innerText = `Running on ${navigator.platform}`;
+            document.getElementById('browser-display').innerText = `Platform: ${navigator.platform}`;
             document.getElementById('screen-info').innerText = `${window.screen.width}x${window.screen.height}`;
 
             let html = "";
