@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WTF IS MY OS - Windows 7 Edition</title>
+    <link rel="stylesheet" href="https://unpkg.com/7.css">
+    <style>
+        body {
+            /* Wallpaper solicitado pelo usuário */
+            background: url('https://wallpaperaccess.com/full/1863471.jpg') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Camada de vidro fosco para ajudar na legibilidade dependendo do brilho do wallpaper */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+
+        .window {
+            width: 700px;
+            max-width: 100%;
+            box-shadow: 0 15px 60px rgba(0,0,0,0.8);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .os-header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+            border: 1px solid #a0a0a0;
+            margin-bottom: 10px;
+        }
+
+        .os-icon {
+            width: 64px;
+            height: 64px;
+            margin-right: 20px;
+        }
+
+        .main-info h2 {
+            margin: 0;
+            color: #1e395b;
+            font-size: 1.6em;
+            text-shadow: 0 1px 0 white;
+        }
+
+        #browser-display {
+            font-size: 1.1em;
+            color: #444;
+            margin-top: 4px;
+        }
+
+        .scrollable-content {
+            max-height: 0;
+            overflow: hidden;
+            padding: 0 10px;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;
+        }
+
+        .scrollable-content.expanded {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-bottom: 10px;
+            border-top: 1px solid #ccc;
+            margin-top: 15px;
+            padding-top: 10px;
+        }
+
+        .category-title {
+            font-weight: bold;
+            color: #2e5a8e;
+            margin: 15px 0 5px 0;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 2px;
+            font-size: 0.9em;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            font-size: 0.82em;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.7em;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            word-break: break-all;
+            color: #111;
+        }
+
+        /* Estilo da barra de scroll */
+        .scrollable-content::-webkit-scrollbar { width: 14px; }
+        .scrollable-content::-webkit-scrollbar-track { background: #f1f1f1; border-left: 1px solid #ccc; }
+        .scrollable-content::-webkit-scrollbar-thumb { background: #cdcdcd; border: 3px solid #f1f1f1; border-radius: 8px; }
+        
+        .expand-btn-container {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        #expand-toggle {
+            min-width: 150px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-bar-text">System Properties - What's My OS</div>
+            <div class="title-bar-controls">
+                <button aria-label="Minimize"></button>
+                <button aria-label="Maximize"></button>
+                <button aria-label="Close"></button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="os-header">
+                <img src="https://win7icons.com/img/System.png" alt="OS Icon" class="os-icon" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2171/2171011.png'">
+                <div class="main-info">
+                    <h2 id="os-display">Analyzing...</h2>
+                    <div id="browser-display">Please wait while we check your system.</div>
+                </div>
+            </div>
+
+            <div class="expand-btn-container">
+                <button id="expand-toggle" onclick="toggleDetails()">Show All Details</button>
+            </div>
+
+            <div class="scrollable-content" id="main-content">
+                <!-- Conteúdo gerado via JS -->
+            </div>
+
+            <section class="field-row" style="justify-content: flex-end; margin-top: 15px;">
+                <button onclick="location.reload()">Refresh</button>
+                <button onclick="window.print()" style="width: 100px;">Save PDF</button>
+                <button style="width: 80px;">OK</button>
+            </section>
+        </div>
+        <div class="status-bar">
+            <p class="status-bar-field" id="status-text">Ready</p>
+            <p class="status-bar-field" id="screen-info">0x0</p>
+        </div>
+    </div>
+
+    <script>
+        let isExpanded = false;
+
+        function toggleDetails() {
+            const content = document.getElementById('main-content');
+            const btn = document.getElementById('expand-toggle');
+            isExpanded = !isExpanded;
+            
+            if (isExpanded) {
+                content.classList.add('expanded');
+                btn.innerText = "Hide Details";
+            } else {
+                content.classList.remove('expanded');
+                btn.innerText = "Show All Details";
+            }
+        }
+
+        function getGPU() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return "N/A";
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Generic GPU";
+            } catch (e) { return "Access Denied"; }
+        }
+
+        function getDetailedOS() {
+            const ua = navigator.userAgent;
+            if (ua.indexOf("Windows NT 10.0") !== -1) return "Windows 10/11";
+            if (ua.indexOf("Windows NT 6.1") !== -1) return "Windows 7";
+            if (ua.indexOf("Windows NT 6.3") !== -1) return "Windows 8.1";
+            if (ua.indexOf("Windows NT 6.0") !== -1) return "Windows Vista";
+            if (ua.indexOf("Windows NT 5.1") !== -1) return "Windows XP";
+            if (ua.indexOf("Macintosh") !== -1) return "macOS";
+            if (ua.indexOf("Linux") !== -1) return "Linux";
+            if (ua.indexOf("Android") !== -1) return "Android";
+            if (ua.indexOf("iPhone") !== -1) return "iOS";
+            return "Unknown OS";
+        }
+
+        async function init() {
+            const container = document.getElementById('main-content');
+            
+            const sections = {
+                "System & Browser": {
+                    "OS Name": getDetailedOS(),
+                    "Architecture": navigator.platform,
+                    "Language": navigator.language,
+                    "User Agent": navigator.userAgent
+                },
+                "Hardware Details": {
+                    "GPU": getGPU(),
+                    "CPU Cores": navigator.hardwareConcurrency || "N/A",
+                    "RAM Approx": navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Unknown",
+                    "Max Touch Points": navigator.maxTouchPoints
+                },
+                "Display Info": {
+                    "Resolution": `${window.screen.width} x ${window.screen.height}`,
+                    "Available": `${window.screen.availWidth} x ${window.screen.availHeight}`,
+                    "Color Depth": `${window.screen.colorDepth}-bit`,
+                    "Pixel Ratio": window.devicePixelRatio
+                },
+                "Network & Capabilities": {
+                    "Online": navigator.onLine ? "Yes" : "No",
+                    "Cookies": navigator.cookieEnabled ? "Yes" : "No",
+                    "PDF Support": navigator.pdfViewerEnabled ? "Yes" : "No",
+                    "Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone
+                }
+            };
+
+            document.getElementById('os-display').innerText = getDetailedOS();
+            document.getElementById('browser-display').innerText = `Running on ${navigator.platform}`;
+            document.getElementById('screen-info').innerText = `${window.screen.width}x${window.screen.height}`;
+
+            let html = "";
+            for (const [category, items] of Object.entries(sections)) {
+                html += `<div class="category-title">${category}</div>`;
+                html += `<div class="details-grid">`;
+                for (const [key, value] of Object.entries(items)) {
+                    html += `
+                        <div class="detail-item">
+                            <span class="detail-label">${key}</span>
+                            <span class="detail-value">${value}</span>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
