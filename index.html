@@ -169,7 +169,7 @@
             </div>
 
             <div class="notice">
-                * Note: For security and privacy reasons, browsers limit access to exact hardware data (Fingerprinting Protection). The values below are the best estimates permitted by your browser API.
+                * Note: Modern browsers (Chrome/Firefox/Edge) often mask your actual OS version to "Windows 10" or "32-bit" to protect your privacy. This tool attempts to bypass these masks using legacy detection strings.
             </div>
 
             <section class="field-row" style="justify-content: flex-end; margin-top: 15px;">
@@ -213,14 +213,42 @@
 
         function getDetailedOS() {
             const ua = navigator.userAgent;
-            if (ua.indexOf("Windows NT 10.0") !== -1) return "Windows 10 or 11";
+            const platform = navigator.platform;
+
+            // Strict Legacy Windows Detection (Bypassing modern UA masks)
+            if (ua.indexOf("Windows NT 5.1") !== -1 || ua.indexOf("Windows XP") !== -1) return "Windows XP";
+            if (ua.indexOf("Windows NT 5.2") !== -1) return "Windows XP 64-bit / Server 2003";
+            if (ua.indexOf("Windows NT 6.0") !== -1) return "Windows Vista";
             if (ua.indexOf("Windows NT 6.1") !== -1) return "Windows 7";
+            if (ua.indexOf("Windows NT 6.2") !== -1) return "Windows 8";
             if (ua.indexOf("Windows NT 6.3") !== -1) return "Windows 8.1";
+            
+            // Modern Windows
+            if (ua.indexOf("Windows NT 10.0") !== -1) {
+                // Check if it's Windows 11 (UA string usually still says 10.0, but userAgentData can clarify)
+                return "Windows 10 / 11";
+            }
+
             if (ua.indexOf("Macintosh") !== -1) return "macOS (Apple)";
-            if (ua.indexOf("Linux") !== -1) return "Linux / Base Distribution";
+            if (ua.indexOf("Linux") !== -1) return "Linux";
             if (ua.indexOf("Android") !== -1) return "Android OS";
-            if (ua.indexOf("iPhone") !== -1) return "iOS (iPhone)";
+            if (ua.indexOf("iPhone") !== -1 || ua.indexOf("iPad") !== -1) return "iOS";
+            
             return "Unknown Operating System";
+        }
+
+        function getArch() {
+            const ua = navigator.userAgent;
+            const platform = navigator.platform;
+            
+            // Detection of 64-bit indicators that survive UA masking
+            if (ua.indexOf("WOW64") !== -1 || ua.indexOf("Win64") !== -1 || ua.indexOf("x64") !== -1 || platform === "Win64") {
+                return "64-bit (x64)";
+            }
+            if (platform === "MacIntel" || platform === "Linux x86_64") {
+                 return "64-bit";
+            }
+            return "32-bit (x86)";
         }
 
         async function init() {
@@ -229,40 +257,40 @@
             let highResData = {};
             if (navigator.userAgentData) {
                 try {
-                    highResData = await navigator.userAgentData.getHighEntropyValues(["architecture", "model", "platformVersion", "fullVersionList"]);
+                    highResData = await navigator.userAgentData.getHighEntropyValues(["architecture", "model", "platformVersion", "fullVersionList", "bitness"]);
                 } catch(e) {}
             }
 
             const sections = {
                 "System & Browser": {
                     "OS Name": getDetailedOS(),
-                    "Reported Architecture": navigator.platform,
-                    "Kernel Version": highResData.platformVersion || "Unavailable",
-                    "Language": navigator.language.toUpperCase(),
-                    "User Agent": navigator.userAgent
+                    "System Architecture": highResData.bitness ? highResData.bitness + "-bit" : getArch(),
+                    "Reported Platform": navigator.platform,
+                    "Kernel String": navigator.userAgent.split('(')[1]?.split(')')[0] || "Hidden",
+                    "Language": navigator.language.toUpperCase()
                 },
                 "Hardware (Browser Estimates)": {
                     "Graphics Card (GPU)": getGPU(),
-                    "Logical Cores (CPU)": navigator.hardwareConcurrency || "Limited/Unknown",
-                    "RAM Memory (Approx)": navigator.deviceMemory ? `At least ${navigator.deviceMemory} GB` : "Not reported by Browser",
-                    "Max Touch Points": navigator.maxTouchPoints || "0 (No Touch)"
+                    "Logical Cores (CPU)": navigator.hardwareConcurrency || "Hidden",
+                    "RAM Memory (Approx)": navigator.deviceMemory ? `~${navigator.deviceMemory} GB` : "Not reported",
+                    "Touch Support": navigator.maxTouchPoints > 0 ? "Yes" : "No"
                 },
                 "Display & Graphics": {
-                    "Total Resolution": `${window.screen.width} x ${window.screen.height}`,
-                    "Available Area": `${window.screen.availWidth} x ${window.screen.availHeight}`,
+                    "Screen Resolution": `${window.screen.width} x ${window.screen.height}`,
                     "Color Depth": `${window.screen.colorDepth}-bit`,
-                    "Pixel Density (DPR)": window.devicePixelRatio
+                    "Pixel Density": window.devicePixelRatio,
+                    "Hardware Bitness": highResData.architecture || "Unknown"
                 },
-                "Network & Security": {
-                    "Internet Connection": navigator.onLine ? "Online" : "Offline",
-                    "Cookies Enabled": navigator.cookieEnabled ? "Yes" : "No",
-                    "Native PDF Support": navigator.pdfViewerEnabled ? "Yes" : "No",
-                    "Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone
+                "Technical Metadata": {
+                    "Online": navigator.onLine ? "Yes" : "No",
+                    "Cookies": navigator.cookieEnabled ? "Yes" : "No",
+                    "Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    "Full User Agent": navigator.userAgent
                 }
             };
 
             document.getElementById('os-display').innerText = getDetailedOS();
-            document.getElementById('browser-display').innerText = `Platform: ${navigator.platform}`;
+            document.getElementById('browser-display').innerText = `Architecture: ${highResData.bitness ? highResData.bitness + "-bit" : getArch()}`;
             document.getElementById('screen-info').innerText = `${window.screen.width}x${window.screen.height}`;
 
             let html = "";
